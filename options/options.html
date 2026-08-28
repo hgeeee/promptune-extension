@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>PrompTune 설정</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>PrompTune 설정</h1>
+    <p class="desc">개발 환경이면 그대로 두시고, 배포된 서버를 쓰신다면 주소를 바꿔주세요.</p>
+
+    <label for="apiBase">백엔드 API 주소</label>
+    <input id="apiBase" type="text" placeholder="http://localhost:8080" />
+
+    <button id="saveBtn">저장</button>
+    <p id="savedMsg" class="saved-msg" hidden>저장했습니다.</p>
+
+    <hr />
+
+    <p class="hint">
+      ⚠️ 이 확장 프로그램의 ID를 백엔드 CORS 허용 목록(<code>CORS_ORIGINS</code>)에
+      <code>chrome-extension://&lt;확장ID&gt;</code> 형태로 추가해야 API 호출이 됩니다.
+      확장 ID는 <code>chrome://extensions</code>에서 확인할 수 있어요.
+    </p>
+  </div>
+  <script src="../shared/api.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

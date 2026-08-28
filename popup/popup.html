@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>PrompTune</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <span class="logo">P</span>
+    <span class="title">PrompTune</span>
+    <button id="logoutBtn" class="logout-btn" hidden>로그아웃</button>
+  </div>
+
+  <!-- 로그인 화면 -->
+  <div id="loginView" class="view">
+    <input id="email" type="email" placeholder="이메일" />
+    <input id="password" type="password" placeholder="비밀번호" />
+    <button id="loginBtn">로그인</button>
+    <p id="loginError" class="error" hidden></p>
+  </div>
+
+  <!-- 컴포저 화면 -->
+  <div id="composerView" class="view" hidden>
+    <textarea id="promptText" placeholder="오늘은 뭘 다듬어볼까요?" rows="4"></textarea>
+    <div class="btn-row">
+      <button id="improveBtn">프롬프트 다듬기</button>
+      <button id="executeBtn" class="primary">바로 실행 ↑</button>
+    </div>
+    <p id="composerError" class="error" hidden></p>
+
+    <div id="improveCard" class="card" hidden>
+      <div class="card-title">AI가 프롬프트를 다듬어봤어요</div>
+      <div id="missingElements" class="missing" hidden></div>
+      <p id="improvedPreview" class="preview"></p>
+      <div id="placeholderChips"></div>
+      <div class="btn-row">
+        <button id="insertIntoPageBtn">현재 페이지에 붙여넣기</button>
+        <button id="copyImprovedBtn">복사</button>
+      </div>
+    </div>
+
+    <div id="resultCard" class="card" hidden>
+      <div class="card-title">PROMPTUNE</div>
+      <p id="resultPreview" class="preview"></p>
+      <div class="btn-row">
+        <button id="insertResultIntoPageBtn">현재 페이지에 붙여넣기</button>
+        <button id="copyResultBtn">복사</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/api.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

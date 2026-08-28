@@ -1,0 +1,179 @@
+.pt-float-btn {
+  all: initial;
+  position: absolute;
+  z-index: 2147483647;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #fff;
+  background: #55806A;
+  border-radius: 999px;
+  padding: 5px 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+.pt-float-btn:hover { background: #466b59; }
+.pt-float-btn:disabled { opacity: 0.7; cursor: default; }
+
+.pt-popover {
+  all: initial;
+  position: absolute;
+  z-index: 2147483647;
+  width: 300px;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  background: #E4EDE7;
+  border: 1px solid #55806A;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  box-sizing: border-box;
+}
+.pt-popover-title {
+  font-size: 12.5px; font-weight: 700; color: #2C2C2A; margin-bottom: 6px;
+}
+.pt-popover-missing {
+  font-size: 11px; color: #6B6864; margin-bottom: 6px;
+}
+.pt-popover-preview {
+  font-size: 12.5px; line-height: 1.55; color: #2C2C2A; background: #fff;
+  border-radius: 6px; padding: 8px 10px; margin: 0 0 8px;
+  white-space: pre-wrap; max-height: 160px; overflow-y: auto;
+}
+.pt-popover-actions { display: flex; gap: 6px; }
+.pt-popover-actions button {
+  all: initial;
+  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  height: 28px; padding: 0 12px; border-radius: 6px; box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pt-apply { background: #55806A !important; color: #fff !important; }
+.pt-dismiss { background: #fff !important; color: #6B6864 !important; border: 1px solid #D8D3D0 !important; }
+
+.pt-popover-fixed {
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  bottom: 16px;
+  right: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.pt-chips-wrap { margin-bottom: 8px; }
+.pt-chip-row { margin-bottom: 6px; }
+.pt-chip-label {
+  display: inline-block; font-size: 10.5px; font-weight: 700; color: #55806A;
+  background: #E4EDE7; border-radius: 4px; padding: 1px 6px; margin-bottom: 4px;
+}
+.pt-chip {
+  all: initial;
+  font-family: inherit; font-size: 11.5px; cursor: pointer;
+  background: #fff; color: #2C2C2A; border: 1px solid #D8D3D0;
+  border-radius: 6px; padding: 4px 8px; margin: 2px 4px 2px 0;
+  display: inline-block;
+}
+.pt-chip:hover { border-color: #55806A; color: #55806A; }
+.pt-chip:focus-visible { outline: 2px solid #55806A; outline-offset: 1px; }
+
+.pt-compare-section { margin-top: 10px; border-top: 1px solid #D8D3D0; padding-top: 10px; }
+.pt-run-btn, .pt-diff-btn {
+  all: initial;
+  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  height: 28px; padding: 0 12px; border-radius: 6px; box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff !important; color: #55806A !important; border: 1px solid #55806A !important;
+  width: 100%; margin-bottom: 6px;
+}
+.pt-result-box {
+  font-size: 12px; line-height: 1.5; color: #2C2C2A; background: #fff;
+  border-radius: 6px; padding: 8px 10px; margin-bottom: 8px;
+  white-space: pre-wrap; max-height: 140px; overflow-y: auto;
+}
+.pt-compare-label { font-size: 11px; color: #6B6864; margin: 6px 0; }
+.pt-gpt-textarea {
+  all: initial;
+  display: block; width: 100%; box-sizing: border-box;
+  font-family: inherit; font-size: 12px; padding: 8px; border-radius: 6px;
+  border: 1px solid #D8D3D0; background: #fff; color: #2C2C2A;
+  min-height: 60px; resize: vertical; margin-bottom: 6px;
+}
+
+/* 팝오버 좌상단 접기 버튼 */
+.pt-collapse-btn {
+  all: initial;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #E4EDE7;
+  color: #55806A;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.pt-collapse-btn:hover {
+  background: #55806A;
+  color: #fff;
+}
+
+/* 접었을 때 화면 우하단에 뜨는 작은 아이콘 (인스타 DM 스타일) */
+.pt-bubble {
+  all: initial;
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 999999;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #55806A;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease;
+}
+.pt-bubble:hover {
+  transform: scale(1.08);
+}
+
+.pt-bubble img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.pt-select {
+  all: initial;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #D8D3D0;
+  background: #fff;
+  color: #2C2C2A;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+.pt-select[multiple] {
+  max-height: 90px;
+  overflow-y: auto;
+}
+.pt-compare-label {
+  clear: both;
+  display: block;
+}
