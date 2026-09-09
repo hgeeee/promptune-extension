@@ -72,9 +72,26 @@ improveBtn.addEventListener("click", async () => {
     const typos = res.diagnose?.typos || [];
     if (typos.length > 0) {
       typoWarningsEl.hidden = false;
-      typoWarningsEl.textContent = `오탈자 의심: ${typos
-        .map((t) => `${t.original ?? t.before ?? ""} → ${t.suggestion ?? t.after ?? ""}`)
-        .join(", ")}`;
+      typoWarningsEl.innerHTML = "";
+      typoWarningsEl.appendChild(document.createTextNode(
+        `오탈자 의심: ${typos.map((t) => `${t.span ?? ""} → ${t.suggest ?? ""}`).join(", ")}`
+      ));
+
+      const fixTyposBtn = document.createElement("button");
+      fixTyposBtn.type = "button";
+      fixTyposBtn.textContent = "오탈자 전체 수정";
+      fixTyposBtn.addEventListener("click", () => {
+        typos.forEach((t) => {
+          if (t.span && t.suggest) {
+            latestImproved = latestImproved.split(t.span).join(t.suggest);
+          }
+        });
+        improvedPreview.textContent = latestImproved;
+        promptText.value = latestImproved;
+        typoWarningsEl.hidden = true;
+      });
+      typoWarningsEl.appendChild(document.createElement("br"));
+      typoWarningsEl.appendChild(fixTyposBtn);
     } else {
       typoWarningsEl.hidden = true;
     }
