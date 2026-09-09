@@ -150,6 +150,15 @@ function ptShowPopover(el, res) {
   title.textContent = "AI가 프롬프트를 다듬어봤어요";
   ptPopover.appendChild(title);
 
+  // 보완 필요 요소 요약 (실제로 문구 후보가 생기는지와 무관하게, 진단된 요소는 전부 보여줌)
+  const missingSummary = res.promptRule?.missing_elements || [];
+  if (missingSummary.length > 0) {
+    const missingEl = document.createElement("div");
+    missingEl.className = "pt-missing-summary";
+    missingEl.textContent = `보완 필요: ${missingSummary.join(", ")}`;
+    ptPopover.appendChild(missingEl);
+  }
+
   const preview = document.createElement("div");
   preview.className = "pt-popover-preview";
   preview.textContent = currentText;
@@ -231,18 +240,34 @@ function ptShowPopover(el, res) {
   actions.appendChild(dismissBtn);
   ptPopover.appendChild(actions);
 
-  ptAppendCompareSection(ptPopover, () => currentText);
+  ptAppendCompareSection(
+    ptPopover,
+    () => remainingPlaceholders,
+    (ph, option) => {
+      chrome.runtime.sendMessage({ type: "PT_BEHAVIOR_LOG", element: ph.element, action: "applied" });
+      currentText = currentText.replace(ph.placeholderText, option);
+      preview.textContent = currentText;
+      remainingPlaceholders = remainingPlaceholders.filter((p) => p !== ph);
+      renderChips();
+    }
+  );
 
   document.body.appendChild(ptPopover);
 }
 
 // 개선된 프롬프트를 /api/execute로 실행해서 프롬프튠 자체 결과를 보여주고,
 // GPT/Claude 답변을 붙여넣으면 차이점을 정리해줌 (자동 스크래핑 없음)
-function ptAppendCompareSection(popoverEl, getCurrentText) {
+// 참고 문서/수신자를 골라서, 남아있는 부족 요소 칩(AUDIENCE/CONTEXT)에
+// 클라이언트에서 바로 채워 넣는 용도로 재구성함. 예전엔 이 선택값이
+// /api/execute(HyperCLOVA 전체 답변 생성)에만 쓰였는데, 그 기능 자체를
+// 없애면서 문서/수신자 선택 UI가 죽은 채로 남지 않도록 용도를 바꿈.
+// getRemainingPlaceholders/onApplyPlaceholder는 ptShowPopover 쪽 상태를
+// 그대로 재사용하기 위해 콜백으로 받는다.
+function ptAppendCompareSection(popoverEl, getRemainingPlaceholders, onApplyPlaceholder) {
   const section = document.createElement("div");
   section.className = "pt-compare-section";
 
-  // 참고 문서 선택 (여러 개 선택 가능)
+  // 참고 문서 선택 (한 개 - 제목을 CONTEXT류 자리에 채우는 용도라 다중 선택 의미 없음)
   const docLabel = document.createElement("div");
   docLabel.className = "pt-compare-label";
   docLabel.textContent = "참고 문서 (선택)";
@@ -250,15 +275,17 @@ function ptAppendCompareSection(popoverEl, getCurrentText) {
 
   const docSelect = document.createElement("select");
   docSelect.className = "pt-select";
-  docSelect.multiple = true;
-  docSelect.size = 3;
+  const docNoneOpt = document.createElement("option");
+  docNoneOpt.value = "";
+  docNoneOpt.textContent = "선택 안 함";
+  docSelect.appendChild(docNoneOpt);
   section.appendChild(docSelect);
 
   ptCallViaBackground("/api/documents", null, "GET")
     .then((docs) => {
       (docs || []).forEach((doc) => {
         const opt = document.createElement("option");
-        opt.value = doc.id;
+        opt.value = doc.title;
         opt.textContent = doc.title;
         docSelect.appendChild(opt);
       });
@@ -267,7 +294,7 @@ function ptAppendCompareSection(popoverEl, getCurrentText) {
       docSelect.disabled = true;
     });
 
-  // 수신자 선택 (한 명만)
+  // 수신자 선택 (한 명 - 이름을 AUDIENCE 자리에 채우는 용도)
   const receiverLabel = document.createElement("div");
   receiverLabel.className = "pt-compare-label";
   receiverLabel.textContent = "수신자 (선택)";
@@ -285,8 +312,8 @@ function ptAppendCompareSection(popoverEl, getCurrentText) {
     .then((profiles) => {
       (profiles || []).forEach((profile) => {
         const opt = document.createElement("option");
-        opt.value = profile.id;
-        opt.textContent = profile.name || profile.displayName || `수신자 #${profile.id}`;
+        opt.value = profile.name || profile.displayName || `수신자 #${profile.id}`;
+        opt.textContent = opt.value;
         receiverSelect.appendChild(opt);
       });
     })
@@ -294,103 +321,53 @@ function ptAppendCompareSection(popoverEl, getCurrentText) {
       receiverSelect.disabled = true;
     });
 
-  const runBtn = document.createElement("button");
-  runBtn.className = "pt-run-btn";
-  runBtn.textContent = "프롬프튠 결과 보기";
+  const applyBtn = document.createElement("button");
+  applyBtn.className = "pt-run-btn";
+  applyBtn.textContent = "선택 내용 반영하기";
+  applyBtn.addEventListener("mousedown", (e) => e.preventDefault());
 
-  const resultBox = document.createElement("div");
-  resultBox.className = "pt-result-box";
-  resultBox.hidden = true;
+  const statusBox = document.createElement("div");
+  statusBox.className = "pt-result-box";
+  statusBox.hidden = true;
 
-  runBtn.addEventListener("mousedown", (e) => e.preventDefault());
-  runBtn.addEventListener("click", async () => {
-    runBtn.textContent = "생성 중…";
-    runBtn.disabled = true;
-    try {
-      const documentIds = Array.from(docSelect.selectedOptions).map((o) => Number(o.value));
-      const receiverProfileId = receiverSelect.value ? Number(receiverSelect.value) : undefined;
+  applyBtn.addEventListener("click", () => {
+    const docTitle = docSelect.value;
+    const receiverName = receiverSelect.value;
 
-      const execRes = await ptCallViaBackground("/api/execute", {
-        finalPrompt: getCurrentText(),
-        documentIds: documentIds.length > 0 ? documentIds : undefined,
-        receiverProfileId,
-      });
-      const answerText = (execRes && execRes.result && execRes.result.result) || "결과를 가져오지 못했습니다.";
-      resultBox.textContent = answerText;
-      resultBox.hidden = false;
-      runBtn.textContent = "다시 생성";
-      ptAppendGptCompareUI(section, answerText);
-    } catch {
-      resultBox.textContent = "실행 중 오류가 발생했습니다.";
-      resultBox.hidden = false;
-      runBtn.textContent = "프롬프튠 결과 보기";
-    } finally {
-      runBtn.disabled = false;
-    }
-  });
-
-  section.appendChild(runBtn);
-  section.appendChild(resultBox);
-  popoverEl.appendChild(section);
-}
-
-function ptAppendGptCompareUI(section, promptuneAnswer) {
-  if (section.querySelector(".pt-gpt-compare")) return;
-
-  const wrap = document.createElement("div");
-  wrap.className = "pt-gpt-compare";
-
-  const label = document.createElement("div");
-  label.className = "pt-compare-label";
-  label.textContent = "이 사이트의 답변을 붙여넣으면 차이점을 정리해드려요";
-  wrap.appendChild(label);
-
-  const textarea = document.createElement("textarea");
-  textarea.className = "pt-gpt-textarea";
-  textarea.placeholder = "여기에 답변을 붙여넣으세요 (Ctrl/Cmd+V)";
-  wrap.appendChild(textarea);
-
-  const diffBtn = document.createElement("button");
-  diffBtn.className = "pt-diff-btn";
-  diffBtn.textContent = "차이점 정리";
-  diffBtn.addEventListener("mousedown", (e) => e.preventDefault());
-
-  const diffBox = document.createElement("div");
-  diffBox.className = "pt-result-box";
-  diffBox.hidden = true;
-
-  diffBtn.addEventListener("click", async () => {
-    const otherAnswer = textarea.value.trim();
-    if (!otherAnswer) {
-      diffBox.textContent = "답변을 먼저 붙여넣어 주세요.";
-      diffBox.hidden = false;
+    if (!docTitle && !receiverName) {
+      statusBox.textContent = "문서나 수신자를 하나 이상 선택해주세요.";
+      statusBox.hidden = false;
       return;
     }
-    diffBtn.textContent = "정리 중…";
-    diffBtn.disabled = true;
-    try {
-      const comparePrompt =
-        `아래 두 개의 AI 답변을 비교해서, 핵심적인 차이점만 3~5개 간단히 정리해줘. ` +
-        `답변 내용을 그대로 옮기지 말고 차이점(어조, 분량, 형식, 포함된 정보 등)만 요약해.\n\n` +
-        `[답변 A - 원래 사이트]\n${otherAnswer}\n\n` +
-        `[답변 B - 프롬프튠 개선 프롬프트로 생성한 답변]\n${promptuneAnswer}`;
-      const execRes = await ptCallViaBackground("/api/execute", { finalPrompt: comparePrompt });
-      const diffText = (execRes && execRes.result && execRes.result.result) || "비교 결과를 가져오지 못했습니다.";
-      diffBox.textContent = diffText;
-      diffBox.hidden = false;
-      diffBtn.textContent = "다시 정리";
-    } catch {
-      diffBox.textContent = "비교 중 오류가 발생했습니다.";
-      diffBox.hidden = false;
-      diffBtn.textContent = "차이점 정리";
-    } finally {
-      diffBtn.disabled = false;
+
+    const remaining = getRemainingPlaceholders();
+    let appliedAny = false;
+
+    if (receiverName) {
+      const audiencePh = remaining.find((ph) => ph.element === "AUDIENCE");
+      if (audiencePh) {
+        onApplyPlaceholder(audiencePh, receiverName);
+        appliedAny = true;
+      }
     }
+
+    if (docTitle) {
+      const contextPh = remaining.find((ph) => ph.element === "CONTEXT" || ph.element === "EXAMPLE");
+      if (contextPh) {
+        onApplyPlaceholder(contextPh, `${docTitle} 참고`);
+        appliedAny = true;
+      }
+    }
+
+    statusBox.textContent = appliedAny
+      ? "선택한 내용을 반영했어요."
+      : "지금은 채울 수 있는 빈 요소(AUDIENCE/CONTEXT)가 없어요.";
+    statusBox.hidden = false;
   });
 
-  wrap.appendChild(diffBtn);
-  wrap.appendChild(diffBox);
-  section.appendChild(wrap);
+  section.appendChild(applyBtn);
+  section.appendChild(statusBox);
+  popoverEl.appendChild(section);
 }
 
 document.addEventListener("focusin", (e) => {
