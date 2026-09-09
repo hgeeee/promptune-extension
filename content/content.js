@@ -150,14 +150,20 @@ function ptShowPopover(el, res) {
   title.textContent = "AI가 프롬프트를 다듬어봤어요";
   ptPopover.appendChild(title);
 
-  // 보완 필요 요소 요약 (실제로 문구 후보가 생기는지와 무관하게, 진단된 요소는 전부 보여줌)
-  const missingSummary = res.promptRule?.missing_elements || [];
-  if (missingSummary.length > 0) {
-    const missingEl = document.createElement("div");
-    missingEl.className = "pt-missing-summary";
-    missingEl.textContent = `보완 필요: ${missingSummary.join(", ")}`;
-    ptPopover.appendChild(missingEl);
+  // 보완 필요 요소 요약 - 칩(또는 문서/수신자 반영)으로 채운 요소는 여기서도 같이 빠짐
+  let remainingMissing = [...(res.promptRule?.missing_elements || [])];
+  const missingEl = document.createElement("div");
+  missingEl.className = "pt-missing-summary";
+  function renderMissingSummary() {
+    if (remainingMissing.length > 0) {
+      missingEl.textContent = `보완 필요: ${remainingMissing.join(", ")}`;
+      missingEl.hidden = false;
+    } else {
+      missingEl.hidden = true;
+    }
   }
+  renderMissingSummary();
+  ptPopover.appendChild(missingEl);
 
   const preview = document.createElement("div");
   preview.className = "pt-popover-preview";
@@ -192,6 +198,8 @@ function ptShowPopover(el, res) {
           currentText = currentText.replace(ph.placeholderText, option);
           preview.textContent = currentText;
           remainingPlaceholders = remainingPlaceholders.filter((p) => p !== ph);
+          remainingMissing = remainingMissing.filter((el) => el !== ph.element);
+          renderMissingSummary();
           renderChips();
         });
         row.appendChild(chip);
@@ -248,6 +256,8 @@ function ptShowPopover(el, res) {
       currentText = currentText.replace(ph.placeholderText, option);
       preview.textContent = currentText;
       remainingPlaceholders = remainingPlaceholders.filter((p) => p !== ph);
+      remainingMissing = remainingMissing.filter((el) => el !== ph.element);
+      renderMissingSummary();
       renderChips();
     }
   );
@@ -312,7 +322,7 @@ function ptAppendCompareSection(popoverEl, getRemainingPlaceholders, onApplyPlac
     .then((profiles) => {
       (profiles || []).forEach((profile) => {
         const opt = document.createElement("option");
-        opt.value = profile.name || profile.displayName || `수신자 #${profile.id}`;
+        opt.value = profile.receiverName || `수신자 #${profile.id}`;
         opt.textContent = opt.value;
         receiverSelect.appendChild(opt);
       });
@@ -321,9 +331,9 @@ function ptAppendCompareSection(popoverEl, getRemainingPlaceholders, onApplyPlac
       receiverSelect.disabled = true;
     });
 
-  const applyBtn = document.createElement("button");
-  applyBtn.className = "pt-run-btn";
-  applyBtn.textContent = "선택 내용 반영하기";
+    const applyBtn = document.createElement("button");
+    applyBtn.className = "pt-run-btn";
+    applyBtn.textContent = "전체 수정하기";
   applyBtn.addEventListener("mousedown", (e) => e.preventDefault());
 
   const statusBox = document.createElement("div");
