@@ -9,23 +9,17 @@ const loginError = document.getElementById("loginError");
 
 const promptText = document.getElementById("promptText");
 const improveBtn = document.getElementById("improveBtn");
-const executeBtn = document.getElementById("executeBtn");
 const composerError = document.getElementById("composerError");
 
 const improveCard = document.getElementById("improveCard");
 const missingElementsEl = document.getElementById("missingElements");
+const typoWarningsEl = document.getElementById("typoWarnings");
 const improvedPreview = document.getElementById("improvedPreview");
 const placeholderChips = document.getElementById("placeholderChips");
 const insertIntoPageBtn = document.getElementById("insertIntoPageBtn");
 const copyImprovedBtn = document.getElementById("copyImprovedBtn");
 
-const resultCard = document.getElementById("resultCard");
-const resultPreview = document.getElementById("resultPreview");
-const insertResultIntoPageBtn = document.getElementById("insertResultIntoPageBtn");
-const copyResultBtn = document.getElementById("copyResultBtn");
-
 let latestImproved = "";
-let latestResult = "";
 
 async function refreshView() {
   const token = await ptGetToken();
@@ -66,15 +60,27 @@ improveBtn.addEventListener("click", async () => {
   try {
     const res = await ptImprove(text);
     latestImproved = res.improvedPrompt || "";
-    const missing = res.promptRule?.missingElements || [];
+    const missing = res.promptRule?.missing_elements || [];
     if (missing.length > 0) {
       missingElementsEl.hidden = false;
       missingElementsEl.textContent = `빠진 요소: ${missing.join(", ")}`;
     } else {
       missingElementsEl.hidden = true;
     }
+
+    // 오탈자: 백엔드 응답(res.diagnose.typos)에는 이미 있었는데 화면에 안 쓰고 버려지던 것 - 노출만 추가
+    const typos = res.diagnose?.typos || [];
+    if (typos.length > 0) {
+      typoWarningsEl.hidden = false;
+      typoWarningsEl.textContent = `오탈자 의심: ${typos
+        .map((t) => `${t.original ?? t.before ?? ""} → ${t.suggestion ?? t.after ?? ""}`)
+        .join(", ")}`;
+    } else {
+      typoWarningsEl.hidden = true;
+    }
+
     improvedPreview.textContent = latestImproved;
-    promptText.value = latestImproved; // 입력창에도 즉시 반영 - "바로 실행" 시 다듬어진 내용이 나가도록
+    promptText.value = latestImproved;
     renderPlaceholderChips(res.placeholders || []);
     improveCard.hidden = false;
   } catch (e) {
@@ -118,26 +124,6 @@ function renderPlaceholderChips(placeholders) {
   });
 }
 
-executeBtn.addEventListener("click", async () => {
-  const text = promptText.value.trim();
-  if (!text) return;
-  composerError.hidden = true;
-  executeBtn.disabled = true;
-  executeBtn.textContent = "실행 중…";
-  try {
-    const res = await ptExecute(text);
-    latestResult = res?.result?.result ?? JSON.stringify(res);
-    resultPreview.textContent = latestResult;
-    resultCard.hidden = false;
-  } catch (e) {
-    composerError.textContent = e.message || "실행에 실패했습니다.";
-    composerError.hidden = false;
-  } finally {
-    executeBtn.disabled = false;
-    executeBtn.textContent = "바로 실행 ↑";
-  }
-});
-
 // 현재 활성 탭의 포커스된 입력창(textarea/input/contenteditable)에 텍스트 삽입
 async function insertIntoActiveTab(text) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -169,24 +155,6 @@ insertIntoPageBtn.addEventListener("click", async () => {
   const ok = await insertIntoActiveTab(latestImproved);
   insertIntoPageBtn.textContent = ok ? "붙여넣었어요" : "입력창을 찾지 못했어요";
   setTimeout(() => { insertIntoPageBtn.textContent = "현재 페이지에 붙여넣기"; }, 1500);
-});
-
-insertResultIntoPageBtn.addEventListener("click", async () => {
-  const ok = await insertIntoActiveTab(latestResult);
-  insertResultIntoPageBtn.textContent = ok ? "붙여넣었어요" : "입력창을 찾지 못했어요";
-  setTimeout(() => { insertResultIntoPageBtn.textContent = "현재 페이지에 붙여넣기"; }, 1500);
-});
-
-copyImprovedBtn.addEventListener("click", async () => {
-  await navigator.clipboard.writeText(latestImproved);
-  copyImprovedBtn.textContent = "복사됨";
-  setTimeout(() => { copyImprovedBtn.textContent = "복사"; }, 1200);
-});
-
-copyResultBtn.addEventListener("click", async () => {
-  await navigator.clipboard.writeText(latestResult);
-  copyResultBtn.textContent = "복사됨";
-  setTimeout(() => { copyResultBtn.textContent = "복사"; }, 1200);
 });
 
 refreshView();
