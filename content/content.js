@@ -165,6 +165,33 @@ function ptShowPopover(el, res) {
   renderMissingSummary();
   ptPopover.appendChild(missingEl);
 
+  // 오탈자 의심 표시 + 한 번에 수정 버튼 (백엔드 res.diagnose.typos)
+  const typos = res.diagnose?.typos || [];
+  if (typos.length > 0) {
+    const typoEl = document.createElement("div");
+    typoEl.className = "pt-typo-summary";
+    typoEl.textContent = `오탈자 의심: ${typos
+      .map((t) => `${t.span ?? ""} → ${t.suggest ?? ""}`)
+      .join(", ")}`;
+
+    const fixTyposBtn = document.createElement("button");
+    fixTyposBtn.type = "button";
+    fixTyposBtn.className = "pt-fix-typos-btn";
+    fixTyposBtn.textContent = "오탈자 전체 수정";
+    fixTyposBtn.addEventListener("mousedown", (e) => e.preventDefault());
+    fixTyposBtn.addEventListener("click", () => {
+      typos.forEach((t) => {
+        if (t.span && t.suggest) {
+          currentText = currentText.split(t.span).join(t.suggest);
+        }
+      });
+      preview.textContent = currentText;
+      typoEl.remove(); // 고쳤으니 오탈자 안내 자체를 없앰
+    });
+    typoEl.appendChild(fixTyposBtn);
+    ptPopover.appendChild(typoEl);
+  }
+
   const preview = document.createElement("div");
   preview.className = "pt-popover-preview";
   preview.textContent = currentText;
